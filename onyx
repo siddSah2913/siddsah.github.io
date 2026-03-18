@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onyx — AI by Siddhu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222222;
+    --border2: #2e2e2e;
+    --onyx: #1c1c28;
+    --onyx-glow: #4a3aff;
+    --onyx-soft: #7b6dff;
+    --onyx-dim: #2d2850;
+    --text: #e8e8e8;
+    --text-dim: #777;
+    --text-muted: #444;
+    --user-bubble: #1e1e2e;
+    --accent: #ff6b35;
+    --accent2: #ff3366;
+    --success: #00d4aa;
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  /* === GRID BACKGROUND === */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74,58,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,58,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* === AMBIENT GLOW === */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(74,58,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: pulse 6s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+  }
+
+  /* === LAYOUT === */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* === HEADER === */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    background: rgba(8,8,8,0.8);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .onyx-gem {
+    width: 36px;
+    height: 36px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .onyx-gem svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 8px rgba(74,58,255,0.6));
+    animation: gem-spin 8s linear infinite;
+  }
+
+  @keyframes gem-spin {
+    0% { filter: drop-shadow(0 0 6px rgba(74,58,255,0.5)); }
+    50% { filter: drop-shadow(0 0 14px rgba(123,109,255,0.9)); }
+    100% { filter: drop-shadow(0 0 6px rgba(74,58,255,0.5)); }
+  }
+
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .logo-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, #fff 0%, var(--onyx-soft) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--success);
+    background: rgba(0,212,170,0.08);
+    border: 1px solid rgba(0,212,170,0.2);
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* === MESSAGES === */
+  .messages {
+    overflow-y: auto;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* Welcome screen */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex: 1;
+    text-align: center;
+    padding: 40px 20px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .welcome-gem {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 20px rgba(74,58,255,0.6));
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .welcome h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, var(--onyx-soft) 60%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .welcome p {
+    color: var(--text-dim);
+    font-size: 13px;
+    max-width: 380px;
+    line-height: 1.7;
+  }
+
+  .suggestion-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .suggestion {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .suggestion:hover {
+    border-color: var(--onyx-glow);
+    background: var(--onyx-dim);
+    color: var(--text);
+    transform: translateY(-1px);
+  }
+
+  .suggestion strong {
+    display: block;
+    color: var(--text);
+    font-size: 11px;
+    margin-bottom: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Message rows */
+  .msg-row {
+    display: flex;
+    gap: 12px;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .msg-row.user {
+    flex-direction: row-reverse;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    margin-top: 2px;
+  }
+
+  .avatar.onyx {
+    background: linear-gradient(135deg, var(--onyx-dim), var(--onyx));
+    border: 1px solid var(--onyx-glow);
+    box-shadow: 0 0 12px rgba(74,58,255,0.3);
+  }
+
+  .avatar.onyx svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .avatar.user-av {
+    background: var(--user-bubble);
+    border: 1px solid var(--border2);
+    color: var(--onyx-soft);
+    font-size: 12px;
+  }
+
+  .bubble {
+    max-width: 72%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.7;
+    font-size: 13.5px;
+  }
+
+  .bubble.onyx {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) var(--radius) 4px;
+    color: var(--text);
+  }
+
+  .bubble.user {
+    background: linear-gradient(135deg, #1e1e3a, #1a1a2e);
+    border: 1px solid #2d2850;
+    border-radius: var(--radius) var(--radius) 4px var(--radius);
+    color: var(--text);
+  }
+
+  .bubble code {
+    background: rgba(74,58,255,0.12);
+    border: 1px solid var(--onyx-dim);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--onyx-soft);
+  }
+
+  .bubble strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .bubble em { color: var(--onyx-soft); font-style: normal; }
+
+  .msg-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+    padding: 0 4px;
+  }
+
+  .msg-row.user .msg-meta { text-align: right; }
+
+  /* Typing indicator */
+  .typing-bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) var(--radius) 4px;
+    padding: 14px 18px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--onyx-soft);
+    animation: typingDot 1.2s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingDot {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  /* === INPUT AREA === */
+  .input-area {
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(8,8,8,0.9);
+    backdrop-filter: blur(12px);
+  }
+
+  .input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 10px 10px 10px 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-wrapper:focus-within {
+    border-color: var(--onyx-glow);
+    box-shadow: 0 0 0 3px rgba(74,58,255,0.1);
+  }
+
+  #user-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13.5px;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.6;
+    min-height: 24px;
+  }
+
+  #user-input::placeholder { color: var(--text-muted); }
+
+  #send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--onyx-glow), var(--onyx-soft));
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 2px 12px rgba(74,58,255,0.4);
+  }
+
+  #send-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 4px 18px rgba(74,58,255,0.6);
+  }
+
+  #send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  #send-btn svg { width: 16px; height: 16px; }
+
+  .input-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .input-footer span { color: var(--onyx-soft); }
+
+  /* === ERROR TOAST === */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: #2a1010;
+    border: 1px solid #ff3366;
+    color: #ff6b6b;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Scrollbar */
+  .messages { scroll-behavior: smooth; }
+
+  @media (max-width: 600px) {
+    .suggestion-grid { grid-template-columns: 1fr; }
+    .bubble { max-width: 88%; }
+    .app { padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- HEADER -->
+  <header>
+    <div class="logo-group">
+      <div class="onyx-gem">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="18,2 32,10 32,26 18,34 4,26 4,10" fill="url(#gemGrad)" stroke="rgba(123,109,255,0.4)" stroke-width="0.5"/>
+          <polygon points="18,2 32,10 18,18" fill="rgba(255,255,255,0.08)"/>
+          <polygon points="18,18 32,10 32,26" fill="rgba(0,0,0,0.3)"/>
+          <polygon points="18,18 4,10 18,2" fill="rgba(255,255,255,0.05)"/>
+          <polygon points="18,18 4,26 18,34" fill="rgba(0,0,0,0.2)"/>
+          <polygon points="18,18 32,26 18,34" fill="rgba(255,255,255,0.04)"/>
+          <defs>
+            <linearGradient id="gemGrad" x1="4" y1="2" x2="32" y2="34" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#4a3aff"/>
+              <stop offset="50%" stop-color="#7b6dff"/>
+              <stop offset="100%" stop-color="#2d2850"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">ONYX</span>
+        <span class="logo-sub">Intelligence Layer</span>
+      </div>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      Online
+    </div>
+  </header>
+
+  <!-- MESSAGES -->
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome-screen">
+      <svg class="welcome-gem" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="36,4 64,20 64,52 36,68 8,52 8,20" fill="url(#wGrad)" stroke="rgba(123,109,255,0.3)" stroke-width="0.8"/>
+        <polygon points="36,4 64,20 36,36" fill="rgba(255,255,255,0.1)"/>
+        <polygon points="36,36 64,20 64,52" fill="rgba(0,0,0,0.3)"/>
+        <polygon points="36,36 8,20 36,4" fill="rgba(255,255,255,0.06)"/>
+        <polygon points="36,36 8,52 36,68" fill="rgba(0,0,0,0.2)"/>
+        <defs>
+          <linearGradient id="wGrad" x1="8" y1="4" x2="64" y2="68" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#4a3aff"/>
+            <stop offset="60%" stop-color="#7b6dff"/>
+            <stop offset="100%" stop-color="#1c1c28"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <h1>Hello, I'm Onyx</h1>
+      <p>Your personal AI — sharp, grounded, and always thinking. Ask me anything.</p>
+      <div class="suggestion-grid">
+        <button class="suggestion" onclick="fillInput('Explain quantum computing simply')">
+          <strong>⚛ Science</strong>
+          Explain quantum computing simply
+        </button>
+        <button class="suggestion" onclick="fillInput('Write a short poem about Kathmandu at night')">
+          <strong>✍ Creative</strong>
+          Write a poem about Kathmandu at night
+        </button>
+        <button class="suggestion" onclick="fillInput('What career can I build with CS + ACCA?')">
+          <strong>💼 Career</strong>
+          CS + ACCA career paths?
+        </button>
+        <button class="suggestion" onclick="fillInput('Give me 3 tips to study smarter, not harder')">
+          <strong>📚 Study</strong>
+          Study smarter, not harder
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea id="user-input" rows="1" placeholder="Ask Onyx anything…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Send">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 8L2 2l3 6-3 6 12-6z" fill="white"/>
+        </svg>
+      </button>
+    </div>
+    <div class="input-footer">Powered by <span>&nbsp;Claude · Anthropic</span>&nbsp;— Onyx UI</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  const welcomeScreen = document.getElementById('welcome-screen');
+  const toast = document.getElementById('toast');
+
+  let conversationHistory = [];
+  let isTyping = false;
+
+  const SYSTEM_PROMPT = `You are Onyx — a sharp, confident, and deeply intelligent AI assistant. You are not Claude and do not mention Claude or Anthropic. Your personality:
+- Thoughtful and precise, never vague
+- Warm but not sycophantic — you respect the user's intelligence
+- You use occasional dry wit, but stay professional
+- You give direct, honest answers — no fluff, no diplomatic softening
+- For code, you're clean and practical
+- For creative tasks, you're vivid and original
+Your name is Onyx. You were built to be genuinely helpful — not a people-pleaser, but a trusted thinking partner.`;
+
+  function getTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function onyxGemSVG(size = 20) {
+    return `<svg viewBox="0 0 36 36" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="18,2 32,10 32,26 18,34 4,26 4,10" fill="url(#g${Math.random().toString(36).slice(2)})" stroke="rgba(123,109,255,0.3)" stroke-width="0.5"/>
+      <polygon points="18,2 32,10 18,18" fill="rgba(255,255,255,0.1)"/>
+      <polygon points="18,18 32,10 32,26" fill="rgba(0,0,0,0.3)"/>
+      <defs>
+        <linearGradient id="g${Math.random().toString(36).slice(2)}" x1="4" y1="2" x2="32" y2="34" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4a3aff"/><stop offset="100%" stop-color="#7b6dff"/>
+        </linearGradient>
+      </defs>
+    </svg>`;
+  }
+
+  function appendMessage(role, text) {
+    if (role === 'assistant' && welcomeScreen.parentElement) {
+      welcomeScreen.style.display = 'none';
+    }
+
+    const row = document.createElement('div');
+    row.className = `msg-row ${role === 'user' ? 'user' : ''}`;
+
+    const av = document.createElement('div');
+    av.className = `avatar ${role === 'user' ? 'user-av' : 'onyx'}`;
+    av.innerHTML = role === 'user' ? 'U' : onyxGemSVG(18);
+
+    const col = document.createElement('div');
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role === 'user' ? 'user' : 'onyx'}`;
+    bubble.innerHTML = formatText(text);
+
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    meta.textContent = `${role === 'user' ? 'You' : 'Onyx'} · ${getTime()}`;
+
+    col.appendChild(bubble);
+    col.appendChild(meta);
+
+    row.appendChild(av);
+    row.appendChild(col);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    return bubble;
+  }
+
+  function showTyping() {
+    const row = document.createElement('div');
+    row.className = 'msg-row';
+    row.id = 'typing-row';
+
+    const av = document.createElement('div');
+    av.className = 'avatar onyx';
+    av.innerHTML = onyxGemSVG(18);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'typing-bubble';
+    bubble.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
+
+    row.appendChild(av);
+    row.appendChild(bubble);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTyping() {
+    const r = document.getElementById('typing-row');
+    if (r) r.remove();
+  }
+
+  function formatText(text) {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || isTyping) return;
+
+    // Hide welcome
+    if (welcomeScreen.style.display !== 'none') {
+      welcomeScreen.style.display = 'none';
+    }
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+    isTyping = true;
+
+    appendMessage('user', text);
+    conversationHistory.push({ role: 'user', content: text });
+
+    showTyping();
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: SYSTEM_PROMPT,
+          messages: conversationHistory
+        })
+      });
+
+      removeTyping();
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const reply = data.content?.find(b => b.type === 'text')?.text || 'Hmm, I had trouble forming a response. Try again.';
+
+      conversationHistory.push({ role: 'assistant', content: reply });
+      appendMessage('assistant', reply);
+
+    } catch (err) {
+      removeTyping();
+      showToast('⚠ ' + (err.message || 'Something went wrong'));
+      appendMessage('assistant', `I ran into an issue: _${err.message}_. Try again in a moment.`);
+    }
+
+    sendBtn.disabled = false;
+    isTyping = false;
+    inputEl.focus();
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function fillInput(text) {
+    inputEl.value = text;
+    autoResize(inputEl);
+    inputEl.focus();
+  }
+</script>
+</body>
+</html>

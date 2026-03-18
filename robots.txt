@@ -1,1 +1,9 @@
-ff
+User-agent: *
+Allow: /
+
+# Block any admin or private paths (add yours if needed)
+Disallow: /admin/
+Disallow: /private/
+
+# Sitemap (update with your actual domain)
+Sitemap: https://siddhantsah.com.np/sitemap.xml
